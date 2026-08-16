@@ -1,0 +1,9 @@
+# dsh-env-profile bundle patch
+#
+# `dsh.bundle.patch` 组合层。安装与本地验证见 README「安装」——
+# 注意：本机实测 `dsh plugin add link:<路径>` 会因 ESM 解析失败而无法加载
+# （官方 @deepseek-ai/* 包靠「真实文件位于 profile 目录树内」的父目录上溯解析，
+#  link/junction 的真实路径在 profile 树外）。正确姿势见 README。
+- insert:
+    - id: env-profile
+      name: 'dsh-env-profile'
