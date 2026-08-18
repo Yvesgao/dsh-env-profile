@@ -1,6 +1,6 @@
 {
   "name": "dsh-env-profile",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "DSH 全局经验插件（骨架）：自动探测本地依赖/便捷路径/网络/磁盘并沉淀为跨会话环境档案，订阅 session/event 折叠每会话统计，把低开销摘要注入每轮系统提示，env_profile 工具按需查全量——减少重复探测、加快会话、降低 token 消耗。",
   "type": "module",
   "repository": {
