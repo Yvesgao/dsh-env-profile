@@ -20,9 +20,10 @@ import { EnvProfileStore } from './lib/store.js'
 import { installCollector } from './lib/collector.js'
 import { installInjector } from './lib/injector.js'
 import { installTool } from './lib/tool.js'
+import { installLearner } from './lib/learner.js'
 
 export const name = 'dsh-env-profile'
-export const inject = ['storageDomain', 'systemPrompt', 'tools', 'sessionProjections']
+export const inject = ['storageDomain', 'systemPrompt', 'tools', 'sessionProjections', 'llm']
 
 export const Config = z.object({
   enabled: z.boolean().default(true),
@@ -44,6 +45,15 @@ export const Config = z.object({
   // 知识条目存储上限与每次注入条数上限。
   maxFactsStored: z.natural().default(500),
   maxFactsInjected: z.natural().default(8),
+  // LLM 自动抽取（lib/learner.js）：默认开启，每 learnIntervalTurns 轮用会话
+  // 自身模型抽取增量片段中的持久事实（有 token 成本，可按需关闭）。
+  // 注意：deepseek-v4-flash 等推理模型会先输出 reasoning，输出上限要留足
+  // （2000 起；偏小会导致思考耗尽预算、正文为空——0.1.3 已实测修复）。
+  learnEnabled: z.boolean().default(true),
+  learnIntervalTurns: z.natural().min(2).default(10),
+  learnMaxInputChars: z.natural().max(32000).default(8000),
+  learnMaxOutputTokens: z.natural().max(8000).default(2000),
+  learnMaxFactsPerRun: z.natural().max(50).default(8),
 })
 
 // Config schema 的默认值在第三方插件上不一定被自动套用，这里手动兜底合并。
@@ -60,6 +70,11 @@ const DEFAULT_CONFIG = {
   writeIntervalMs: 5000,
   maxFactsStored: 500,
   maxFactsInjected: 8,
+  learnEnabled: true,
+  learnIntervalTurns: 10,
+  learnMaxInputChars: 8000,
+  learnMaxOutputTokens: 2000,
+  learnMaxFactsPerRun: 8,
 }
 
 export function apply(ctx, rawConfig) {
@@ -90,7 +105,7 @@ export function apply(ctx, rawConfig) {
 
       // 各部件独立安装：单个部件失败不影响其余（fail-soft）。
       const disposers = []
-      for (const install of [installCollector, installInjector, installTool]) {
+      for (const install of [installCollector, installInjector, installTool, installLearner]) {
         try {
           disposers.push(install(ctx, config, store))
         } catch (error) {
