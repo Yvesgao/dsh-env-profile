@@ -87,16 +87,19 @@ dsh plugin --profile web add "github:Yvesgao/dsh-env-profile#v0.1.0"
 
 ## 配置
 
-schema 见 `index.js` 的 `Config`，典型覆盖（profile 的 `cordis.patch.yml`）：
+schema 见 `index.js` 的 `Config`，典型覆盖（profile 的 `cordis.patch.yml`，
+顶层数组元素按行 id 覆盖，`config` 整体替换、未列出的键回落到插件默认值）：
 
 ```yaml
-- patch:
-    - id: env-profile
-      config:
-        injectMaxChars: 400        # 注入预算调小
-        probeIntervalHours: 24     # 探测更懒
-        networkHost: api.deepseek.com
-        trackSessions: true
+- id: env-profile
+  config:
+    injectMaxChars: 400        # 注入预算调小
+    probeIntervalHours: 24     # 探测更懒
+    networkHost: api.deepseek.com
+    trackSessions: true
+    learnEnabled: false        # 关闭 LLM 自动抽取（有 token 成本）
+    learnIntervalTurns: 5      # 每 5 轮抽取一次（默认 10）
+    learnMaxInputChars: 4000   # 抽取输入上限（默认 8000 字符）
 ```
 
 ## 已知边界（骨架期）
@@ -104,17 +107,18 @@ schema 见 `index.js` 的 `Config`，典型覆盖（profile 的 `cordis.patch.ym
 - **探测只覆盖 Windows**：`where.exe` 与 `%LOCALAPPDATA%` 等为 win32 约定；
   POSIX 版本需要改用 `command -v` 与 `$XDG_*`（见路线图）。
 - **版本探测未做**：目前只记「命令是否存在」，不跑 `--version`（每条多一次子进程）。
-- **知识条目靠显式写入**：骨架未接 LLM 自动抽取（需要 `ctx.llm.stream` +
-  会话文本复习，参考 dsh-persona-memory 的后台学习；属可选增强）。
+- **抽取去重按规范化文本**：learner 与 `store.remember()` 用 slug 去重 + 计数，
+  同义改写的事实可能并存（近义合并留作后续）。
 - **单进程写约束**：json 后端无跨进程写锁，勿在多个 dsh 进程同时写同一 DSH_HOME。
 
 ## 路线图
 
+- [x] LLM 自动抽取知识条目（0.1.2）：每 N 轮用会话自身模型复习增量片段，
+      提取 用户偏好 / 项目约定 / 便捷路径 / 依赖工具（带 `sourceSeq` 溯源），
+      条目自动进入每轮注入摘要
 - [ ] POSIX 探测适配（`command -v` / XDG 目录 / `/dev/null` 磁盘采样）
 - [ ] 关键工具版本探测（git/node/npm/pnpm/python）与 PATH 首个命中路径
-- [ ] LLM 自动抽取知识条目：每 N 轮用会话自身 LLM 复习，提取
-      用户偏好 / 项目约定 / 便捷路径（带 `(sessionId, seq)` 溯源，
-      参考 dsh-memory 的引用式记忆）
+- [ ] 近义知识合并（抽取时对已存条目做一次相似度过滤）
 - [ ] 会话结果缓存：常见命令输出（如 `git status`、目录列表）跨会话复用
 - [ ] Web 设置页（`settings.section` slot）查看/编辑档案与条目
 - [ ] 与 dsh-mnemon / dsh-persona-memory 的记忆仓库互读
