@@ -106,7 +106,8 @@ schema 见 `index.js` 的 `Config`，典型覆盖（profile 的 `cordis.patch.ym
 
 - **探测只覆盖 Windows**：`where.exe` 与 `%LOCALAPPDATA%` 等为 win32 约定；
   POSIX 版本需要改用 `command -v` 与 `$XDG_*`（见路线图）。
-- **版本探测未做**：目前只记「命令是否存在」，不跑 `--version`（每条多一次子进程）。
+- **版本探测覆盖常用工具**（git/node/npm/pnpm/python/dotnet/java/docker 等 20+，
+  0.1.4 起）；`7z`/`wsl`/`pwsh` 等无稳定版本参数或启动慢，只记录存在与路径。
 - **抽取去重按规范化文本**：learner 与 `store.remember()` 用 slug 去重 + 计数，
   同义改写的事实可能并存（近义合并留作后续）。
 - **单进程写约束**：json 后端无跨进程写锁，勿在多个 dsh 进程同时写同一 DSH_HOME。
@@ -116,8 +117,8 @@ schema 见 `index.js` 的 `Config`，典型覆盖（profile 的 `cordis.patch.ym
 - [x] LLM 自动抽取知识条目（0.1.2）：每 N 轮用会话自身模型复习增量片段，
       提取 用户偏好 / 项目约定 / 便捷路径 / 依赖工具（带 `sourceSeq` 溯源），
       条目自动进入每轮注入摘要
+- [x] 关键工具版本探测 + PATH 首个命中路径（0.1.4）：`toolVersions`/`toolPaths`
 - [ ] POSIX 探测适配（`command -v` / XDG 目录 / `/dev/null` 磁盘采样）
-- [ ] 关键工具版本探测（git/node/npm/pnpm/python）与 PATH 首个命中路径
 - [ ] 近义知识合并（抽取时对已存条目做一次相似度过滤）
 - [ ] 会话结果缓存：常见命令输出（如 `git status`、目录列表）跨会话复用
 - [ ] Web 设置页（`settings.section` slot）查看/编辑档案与条目
